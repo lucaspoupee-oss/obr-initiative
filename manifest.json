@@ -1,0 +1,14 @@
+{
+  "name": "obr-initiative",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "author": "Lucas",
+  "description": "Gothic initiative tracker for Owlbear Rodeo: turn order, Bloodied/Dead overlays on the board, separate GM and player views.",
+  "action": {
+    "title": "obr-initiative",
+    "icon": "/icon.svg",
+    "popover": "/index.html",
+    "width": 430,
+    "height": 700
+  }
+}

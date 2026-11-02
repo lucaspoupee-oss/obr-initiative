@@ -1,0 +1,5 @@
+Condition icons in this folder are rendered from Noto Emoji
+(https://github.com/googlefonts/noto-emoji), placed on a dark disc for
+legibility on light maps.
+
+Noto Emoji artwork is licensed under the Apache License 2.0.

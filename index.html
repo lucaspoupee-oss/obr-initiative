@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Barovian Initiative</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #131010;          /* night background */
+    --panel: #1e1817;        /* raised panel */
+    --panel-2: #262019;      /* input field */
+    --bone: #e9dfc9;         /* parchment text */
+    --bone-dim: #a99d84;     /* secondary text */
+    --blood: #a4161a;        /* dark blood */
+    --blood-bright: #e5383b; /* bright blood (active) */
+    --gilt: #b08d57;         /* tarnished brass */
+    --line: #3a2f28;
+    --dead: #6d6459;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(164,22,26,0.12), transparent 55%),
+      var(--ink);
+    color: var(--bone);
+    font-family: "Alegreya Sans", system-ui, sans-serif;
+    font-size: 14px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 12px 5px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 {
+    font-family: "Cinzel", serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--bone-dim);
+    flex: 1;
+  }
+  .round-pill {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    background: radial-gradient(circle at 35% 25%, #c1272d, var(--blood) 65%, #5c0d10);
+    box-shadow: 0 0 0 1px #2a0d0e, 0 0 8px rgba(164,22,26,0.5);
+    color: #f5e6d0;
+    user-select: none;
+    flex: none;
+    line-height: 1;
+  }
+  .round-pill .lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.85; }
+  .round-pill .num { font-family: "Cinzel", serif; font-size: 14px; font-weight: 700; }
+  #current-name {
+    flex: 1; min-width: 0;
+    font-family: "Cinzel", serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--gilt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---------- toolbar ---------- */
+  #toolbar {
+    display: flex; gap: 6px; align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  button {
+    font-family: "Alegreya Sans", sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--bone);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  button:hover { background: #2a221f; border-color: var(--gilt); }
+  button:focus-visible { outline: 2px solid var(--gilt); outline-offset: 1px; }
+  button.primary {
+    background: linear-gradient(180deg, #b71c21, #7c1013);
+    border-color: #d24a4d;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    flex: none;
+  }
+  button.primary:hover { background: linear-gradient(180deg, #cf2228, #8f1216); }
+  button.icon-btn { padding: 6px 8px; font-size: 14px; line-height: 1; }
+  #btn-hpboard { filter: grayscale(1); opacity: .45; }
+  #btn-hpboard.on { filter: none; opacity: 1; border-color: var(--gilt); }
+  .menu-wrap { position: relative; }
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 4px);
+    background: var(--panel); border: 1px solid var(--gilt); border-radius: 6px;
+    min-width: 230px; z-index: 30;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    display: none; flex-direction: column;
+  }
+  .menu.open { display: flex; }
+  .menu button { border: none; border-radius: 0; text-align: left; background: transparent; }
+  .menu button:hover { background: #33241f; }
+  .menu button + button { border-top: 1px solid var(--line); }
+
+  /* ---------- list ---------- */
+  #list { flex: 1; overflow-y: auto; padding: 8px 10px 14px; }
+  #list::-webkit-scrollbar { width: 8px; }
+  #list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 4px 8px;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .row.active {
+    border-color: var(--blood-bright);
+    border-left-color: var(--blood-bright);
+    box-shadow: 0 0 10px rgba(229,56,59,0.35);
+    animation: rowPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes rowPulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(229,56,59,0.25); }
+    50%      { box-shadow: 0 0 14px rgba(229,56,59,0.55); }
+  }
+  .row.dead-row { opacity: 0.75; }
+  .row.dead-row .name-input { text-decoration: line-through; color: var(--dead); }
+
+  .row-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .mini {
+    grid-row: span 2;
+    align-self: stretch;
+    width: 52px; height: 100%; min-height: 52px;
+    border-radius: 5px; object-fit: cover;
+    border: 1px solid var(--line);
+    background: #000;
+    cursor: pointer;
+  }
+  .mini:hover { border-color: var(--gilt); }
+
+  input[type="text"], input[type="number"] {
+    font-family: "Alegreya Sans", sans-serif;
+    font-size: 13px;
+    color: var(--bone);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 4px 6px;
+    min-width: 0;
+  }
+  input:focus-visible { outline: 1px solid var(--gilt); }
+  input:disabled { opacity: 0.85; border-color: transparent; background: transparent; }
+  .name-input { flex: 1; font-weight: 500; }
+  .init-input { width: 38px; text-align: center; font-weight: 700; font-size: 14px; padding: 4px 2px; }
+  input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+  /* ---- hit points (GM only — players never get this line built) ---- */
+  .row-hp { display: flex; align-items: center; gap: 4px; min-width: 0; flex-wrap: wrap; }
+  .row-hp .heart { font-size: 12px; opacity: .85; line-height: 1; }
+  .hp-cur {
+    width: 42px; text-align: center; font-weight: 700; padding: 4px 2px;
+    background-repeat: no-repeat; background-size: 0% 100%;
+  }
+  .hp-slash { color: var(--bone-dim); }
+  .hp-max { width: 38px; text-align: center; padding: 4px 2px; color: var(--bone-dim); }
+  .dmg-group { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
+  .dmg-in { width: 40px; text-align: center; padding: 4px 2px; }
+  .dmg-btn { padding: 3px 8px; font-size: 13px; line-height: 1.1; }
+  .dmg-btn.hurt:hover { border-color: var(--blood-bright); color: #ffb3b3; }
+  .dmg-btn.heal:hover { border-color: #5f9e5f; color: #b6e0b6; }
+
+  .chk { display: inline-flex; align-items: center; cursor: pointer; user-select: none; }
+  .chk input { display: none; }
+  .chk .glyph {
+    font-size: 15px; line-height: 1;
+    filter: grayscale(1); opacity: 0.35;
+    transition: filter 0.12s, opacity 0.12s, text-shadow 0.12s;
+    padding: 3px 2px;
+  }
+  .chk input:checked + .glyph {
+    filter: none; opacity: 1;
+    text-shadow: 0 0 6px rgba(229,56,59,0.9);
+  }
+  body.player .chk { cursor: default; }
+
+  /* ---- condition chips: the fill drains as the rounds tick down ---- */
+  .row-conds { margin-top: 0; min-width: 0; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .chip {
+    position: relative; overflow: hidden;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 7px; border-radius: 999px;
+    border: 1px solid #6b5424; background: #241c10;
+    font-size: 11px; line-height: 1; white-space: nowrap;
+  }
+  .chip .fill {
+    position: absolute; inset: 0; transform-origin: left center;
+    background: linear-gradient(90deg, rgba(217,164,65,0.34), rgba(217,164,65,0.14));
+    transition: transform .45s ease;
+  }
+  .chip > * { position: relative; }
+  .chip .cem { font-size: 12px; }
+  .chip .cnm { color: var(--bone); }
+  .chip .cr { font-family: "Cinzel", serif; font-weight: 700; font-size: 10px; color: #d9a441; padding-left: 1px; }
+  .chip.perm { border-color: #4a5a6b; background: #131b22; }
+  .chip.perm .fill { background: linear-gradient(90deg, rgba(120,170,210,0.24), rgba(120,170,210,0.1)); }
+  .chip.perm .cr { color: #8fb8d8; }
+  .chip.last { border-color: var(--blood-bright); animation: chipWarn 1.4s ease-in-out infinite; }
+  @keyframes chipWarn { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 8px rgba(229,56,59,0.55); } }
+  .chip .cbtn {
+    border: none; background: transparent; color: var(--bone-dim);
+    font-family: "Alegreya Sans", sans-serif; font-size: 12px;
+    padding: 0 1px; cursor: pointer; line-height: 1;
+  }
+  .chip .cbtn:hover { color: var(--bone); }
+  .chip .cbtn:disabled { display: none; }
+  .chip-add {
+    padding: 3px 8px; border-radius: 999px; font-size: 10px;
+    background: transparent; border: 1px dashed var(--line); color: var(--bone-dim);
+    letter-spacing: .04em;
+  }
+  .chip-add:hover { border-style: solid; border-color: var(--gilt); color: var(--gilt); background: transparent; }
+
+  /* ---- condition picker ---- */
+  #cond-sheet {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.74);
+    display: flex; align-items: center; justify-content: center; padding: 10px;
+  }
+  #cond-sheet[hidden] { display: none; }
+  .cond-card {
+    background: var(--panel); border: 1px solid var(--gilt); border-radius: 10px;
+    padding: 12px; width: 100%; max-height: 92vh; overflow-y: auto;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.75);
+  }
+  .cond-card h2 {
+    font-family: "Cinzel", serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--gilt);
+    margin-bottom: 10px;
+  }
+  .cap {
+    display: block; font-family: "Cinzel", serif; font-size: 9px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--bone-dim); margin-bottom: 5px;
+  }
+  .dur-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .dur-row .dur { min-width: 32px; padding: 6px 0; font-size: 12px; }
+  .dur-row .dur.on { border-color: #d9a441; color: #d9a441; background: #2a2010; }
+  .dur-row input { width: 52px; text-align: center; }
+  .dur-unit { color: var(--bone-dim); font-size: 12px; }
+  .cond-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .cond-grid button { text-align: left; font-size: 12px; padding: 6px 7px; }
+  .cond-grid button.sel {
+    border-color: #d9a441; background: #2a2010; color: var(--bone);
+    box-shadow: inset 0 0 0 1px rgba(217,164,65,0.35);
+  }
+  .cond-foot { display: flex; gap: 6px; margin-top: 12px; }
+  .cond-foot .grow { flex: 1; }
+  .cond-hint { color: var(--bone-dim); font-size: 11px; font-style: italic; margin-top: 9px; line-height: 1.4; }
+  .owner-select {
+    flex: none; max-width: 110px;
+    font-family: "Alegreya Sans", sans-serif;
+    font-size: 11px;
+    color: var(--bone-dim);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 3px 4px;
+  }
+  .owner-select:focus-visible { outline: 1px solid var(--gilt); }
+  .row.mine:not(.active) { border-left-color: var(--gilt); }
+  body.player .row.mine .chk { cursor: pointer; }
+
+  .row-btn {
+    flex: none; padding: 3px 6px; font-size: 12px;
+    background: transparent; border-color: transparent; color: var(--bone-dim);
+  }
+  .row-btn:hover { color: var(--bone); border-color: var(--line); background: var(--panel-2); }
+
+  #bench-divider {
+    display: flex; align-items: center; gap: 8px;
+    margin: 14px 0 8px;
+    color: var(--bone-dim);
+    font-family: "Cinzel", serif;
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  #bench-divider::before, #bench-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+  .row.benched { opacity: 0.6; }
+
+  /* token hidden on the board: only the GM ever gets these rows */
+  .row.hidden-row { opacity: 0.5; border-style: dashed; }
+  .row.hidden-row .mini { filter: grayscale(1); }
+  .row.hidden-row .name-input { font-style: italic; }
+
+  #empty {
+    text-align: center; color: var(--bone-dim);
+    padding: 40px 20px; font-style: italic; line-height: 1.5;
+  }
+
+  footer {
+    padding: 5px 12px 7px;
+    border-top: 1px solid var(--line);
+    color: var(--bone-dim);
+    font-size: 11px; text-align: center;
+    font-style: italic;
+  }
+
+  body.player #toolbar .gm-only, body.player .gm-only { display: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    .row.active { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Initiative Tracker</h1>
+  </header>
+
+  <div id="toolbar">
+    <span class="round-pill" title="Current round">
+      <span class="lbl">Round</span><span class="num" id="round-num">1</span>
+    </span>
+    <span id="current-name" title="Current combatant">&mdash;</span>
+    <button class="primary gm-only" id="btn-next" title="Advance to the next combatant">Next &#9656;</button>
+    <button class="icon-btn gm-only" id="btn-sort" title="Reverse sort order"></button>
+    <button class="icon-btn gm-only" id="btn-hpboard" title="Show HP under the tokens on the board (only you see it)">&#10084;&#65039;</button>
+    <div class="menu-wrap gm-only">
+      <button class="icon-btn" id="btn-reset" title="Reset options">&#8635;</button>
+      <div class="menu" id="reset-menu">
+        <button id="reset-init">Reset initiative values &amp; round</button>
+        <button id="reset-conds">Clear all conditions</button>
+        <button id="reset-hp">Restore everyone to full HP</button>
+        <button id="reset-all">Clear all tokens &amp; reset round</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="list">
+    <div id="empty">Select a token on the board, then pick<br/>&ldquo;Add to initiative&rdquo; in its context menu.</div>
+  </div>
+
+  <footer id="hint">Double-click a portrait to center the view on that token.</footer>
+
+  <!-- condition picker -->
+  <div id="cond-sheet" hidden>
+    <div class="cond-card">
+      <h2 id="cond-title">Add a condition</h2>
+
+      <span class="cap">How long</span>
+      <div class="dur-row">
+        <button class="dur" data-r="1">1</button>
+        <button class="dur" data-r="2">2</button>
+        <button class="dur" data-r="3">3</button>
+        <button class="dur" data-r="5">5</button>
+        <button class="dur" data-r="10">10</button>
+        <button class="dur" data-r="">&#8734;</button>
+        <input type="number" id="cond-rounds" value="3" min="1" max="99" title="Rounds" />
+        <span class="dur-unit">rounds</span>
+      </div>
+
+      <div class="cond-grid" id="cond-grid"></div>
+
+      <span class="cap" style="margin-top:12px">Or write your own</span>
+      <input type="text" id="cond-custom" placeholder="Bane, hexed, on fire&hellip;" style="width:100%" />
+
+      <div class="cond-foot">
+        <button id="cond-cancel">Cancel</button>
+        <button class="primary grow" id="cond-add" disabled>Pick a condition</button>
+      </div>
+      <p class="cond-hint">Set the duration first &mdash; nothing is added until you press the button.
+      Conditions tick down at the start of that creature's own turn.</p>
+    </div>
+  </div>
+
+<script type="module">
+import OBR, { buildCurve, buildImage, buildLabel } from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3/+esm";
+
+/* ============================================================
+ *  Constants & state
+ * ============================================================ */
+const NS    = "eu.barovia.initiative";
+const META  = `${NS}/entry`;   // per-token metadata: {initiative,name,bloodied,dead,conds,benched,added,hp,hpMax}
+const STATE = `${NS}/state`;   // scene metadata: {round, activeId, sortDesc}
+
+const DEFAULT_STATE = { round: 1, activeId: null, sortDesc: true };
+
+let role   = "PLAYER";
+let myId   = null;   // my persistent player id
+let party  = [];     // connected players (for owner assignment)
+let dpi    = 150;
+let items  = [];                    // tracked tokens (Image items with META)
+let state  = { ...DEFAULT_STATE };
+let sceneReady = false;
+
+let localIds   = [];   // all our local items (icons + corners)
+let bracketIds = [];   // pulsing corners only
+let overlaySig = "";   // signature to skip useless rebuilds
+let pendingRender = false;
+
+/* HP labels under the tokens: local items on the GM's client only, kept apart
+   from the other overlays so a hit only redraws the numbers, not every icon. */
+let hpIds = [];
+let hpSig = "";
+const HP_PREF = `${NS}/hpOnBoard`;
+let showHpOnBoard = true;
+try { showHpOnBoard = localStorage.getItem(HP_PREF) !== "0"; } catch {}
+
+/* ---------- status icons: PNG files shipped with the extension ---------- */
+/* (OBR's image renderer needs real URLs — data URIs show "image unavailable") */
+const ICON_PX  = 240;
+const DROP_URL  = new URL("drop.png",  location.href).href;
+const SKULL_URL = new URL("skull.png", location.href).href;
+
+/* Condition icons: Noto Emoji artwork on a dark gilt disc, shipped as PNGs so
+   every client shows the same picture regardless of its system emoji font. */
+const COND_PX = 256;
+const CONDITION_ICON = {
+  "\u2728": "2728", "\u{1F648}": "1f648", "\u{1F497}": "1f497", "\u{1F3AF}": "1f3af",
+  "\u2620\uFE0F": "2620", "\u{1F649}": "1f649", "\u{1F971}": "1f971", "\u{1F631}": "1f631",
+  "\u{1F91D}": "1f91d", "\u{1F4A8}": "1f4a8", "\u{1F4AB}": "1f4ab", "\u{1F47B}": "1f47b",
+  "\u26A1": "26a1", "\u{1F5FF}": "1f5ff", "\u{1F922}": "1f922", "\u2B07\uFE0F": "2b07",
+  "\u{1F624}": "1f624", "\u{1F578}\uFE0F": "1f578", "\u{1F6E1}\uFE0F": "1f6e1",
+  "\u{1F40C}": "1f40c", "\u{1F4A5}": "1f4a5", "\u{1F635}": "1f635", "\u{1F52E}": "1f52e",
+};
+const CUSTOM_COND_FILE = "1f52e";
+const condIconURL = (emoji) =>
+  new URL(`cond/${CONDITION_ICON[emoji] || CUSTOM_COND_FILE}.png`, location.href).href;
+
+/* ============================================================
+ *  Helpers
+ * ============================================================ */
+const tokenName = (it) => (it.text?.plainText?.trim()) || it.name || "Creature";
+const entryOf   = (it) => it.metadata[META];
+const displayName = (it) => { const e = entryOf(it); return (e && e.name != null && e.name !== "") ? e.name : tokenName(it); };
+
+function bounds(it) {
+  const sx = Math.abs(it.scale?.x ?? 1), sy = Math.abs(it.scale?.y ?? 1);
+  const s  = dpi / (it.grid?.dpi || dpi);
+  const w  = (it.image?.width  || dpi) * s * sx;
+  const h  = (it.image?.height || dpi) * s * sy;
+  const x  = it.position.x - (it.grid?.offset?.x || 0) * s * sx;
+  const y  = it.position.y - (it.grid?.offset?.y || 0) * s * sy;
+  return { x, y, w, h };
+}
+
+/* Sorting: benched section handled separately; initiative sort here */
+function sortEntries(list) {
+  const dir = state.sortDesc ? -1 : 1;
+  return [...list].sort((a, b) => {
+    const ea = entryOf(a), eb = entryOf(b);
+    const ia = ea.initiative, ib = eb.initiative;
+    if (ia == null && ib == null) return displayName(a).localeCompare(displayName(b), "en");
+    if (ia == null) return 1;               // no value: sinks to the bottom
+    if (ib == null) return -1;
+    if (ia !== ib) return (ia - ib) * dir;
+    return displayName(a).localeCompare(displayName(b), "en");
+  });
+}
+
+function visibleForMe(it) { return role === "GM" || it.visible !== false; }
+const activeList  = () => sortEntries(items.filter(i => !entryOf(i).benched));
+const benchedList = () => sortEntries(items.filter(i =>  entryOf(i).benched));
+
+/* ============================================================
+ *  Writes (GM)
+ * ============================================================ */
+async function updateEntry(id, patch) {
+  await OBR.scene.items.updateItems([id], (its) => {
+    for (const it of its) it.metadata[META] = { ...it.metadata[META], ...patch };
+  });
+}
+async function setState(patch) {
+  state = { ...state, ...patch };
+  await OBR.scene.setMetadata({ [STATE]: state });
+  notifyTurn();   // deduped by turn key; remote clients get it via onMetadataChange
+  scheduleRender(); rebuildOverlays();
+}
+
+/* Player edits can't write GM-owned items directly (OBR permissions), so
+ * owners send their edit to the GM client, which validates and applies it.
+ * Hit points are deliberately NOT in this list: only the GM touches them. */
+const EDIT_CHANNEL = `${NS}/edit`;
+const OWNER_EDITABLE = ["initiative", "name", "bloodied", "dead", "conds"];
+async function sendEdit(id, patch) {
+  if (role === "GM") return updateEntry(id, patch);
+  try {
+    await OBR.broadcast.sendMessage(EDIT_CHANNEL, { id, patch });
+  } catch (err) {
+    console.warn(`${NS}: edit relay failed`, err);
+  }
+}
+
+/* ============================================================
+ *  Hit points (GM only) — bloodied and dead follow the numbers
+ *  once a maximum is known; without one they stay manual.
+ * ============================================================ */
+function deriveFlags(e) {
+  if (e.hpMax == null || e.hp == null) return e;
+  e.dead = e.hp <= 0;
+  e.bloodied = !e.dead && e.hp <= e.hpMax / 2;
+  return e;
+}
+
+/* The change is computed inside the updater, on the freshest copy of the item,
+   so two quick hits in a row never read the same stale value. */
+async function patchHP(id, mutate) {
+  if (role !== "GM") return;
+  await OBR.scene.items.updateItems([id], (its) => {
+    for (const it of its) {
+      const e = { ...it.metadata[META] };
+      mutate(e);
+      deriveFlags(e);
+      it.metadata[META] = e;
+    }
+  });
+}
+
+function setHP(id, field, value) {
+  return patchHP(id, (e) => {
+    const firstMax = field === "hpMax" && e.hp == null && value != null;
+    e[field] = value;
+    if (firstMax) e.hp = value;              // first time a max is set: start at full
+  });
+}
+
+function applyDelta(id, sign, amount) {
+  if (!Number.isFinite(amount) || amount === 0) return;
+  return patchHP(id, (e) => {
+    const base = e.hp != null ? e.hp : (e.hpMax || 0);
+    e.hp = Math.max(0, base + sign * Math.abs(amount));
+  });
+}
+
+/* the current-HP box fills like a health bar */
+function hpTint(e) {
+  if (e.hpMax == null || e.hp == null || e.hpMax <= 0) return "";
+  const frac = Math.max(0, Math.min(1, e.hp / e.hpMax));
+  const col = frac > 0.5 ? "rgba(90,150,80,0.42)"
+            : frac > 0.25 ? "rgba(217,164,65,0.42)"
+            : "rgba(164,22,26,0.5)";
+  return `linear-gradient(${col}, ${col})`;
+}
+function hpFill(e) {
+  if (!e.hpMax || e.hp == null) return "0% 100%";
+  return `${Math.max(0, Math.min(100, (e.hp / e.hpMax) * 100))}% 100%`;
+}
+
+/* ============================================================
+ *  Conditions
+ * ============================================================ */
+/* Kept alphabetical; every glyph here is old enough to render on any
+   platform (nothing newer than Emoji 12), so no font needs shipping. */
+const CONDITIONS = [
+  ["\u2728","Blessed"], ["\u{1F648}","Blinded"], ["\u{1F497}","Charmed"], ["\u{1F3AF}","Concentrating"],
+  ["\u2620\uFE0F","Cursed"], ["\u{1F649}","Deafened"], ["\u{1F971}","Exhaustion"], ["\u{1F631}","Frightened"],
+  ["\u{1F91D}","Grappled"], ["\u{1F4A8}","Hasted"], ["\u{1F4AB}","Incapacitated"], ["\u{1F47B}","Invisible"],
+  ["\u26A1","Paralyzed"], ["\u{1F5FF}","Petrified"], ["\u{1F922}","Poisoned"], ["\u2B07\uFE0F","Prone"],
+  ["\u{1F624}","Raging"], ["\u{1F578}\uFE0F","Restrained"], ["\u{1F6E1}\uFE0F","Shielded"], ["\u{1F40C}","Slowed"],
+  ["\u{1F4A5}","Stunned"], ["\u{1F635}","Unconscious"],
+].sort((a, b) => a[1].localeCompare(b[1]));
+
+const condsOf = (it) => {
+  const c = entryOf(it) && entryOf(it).conds;
+  return Array.isArray(c) ? c : [];
+};
+const condId = () => "k" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+/* Tick the conditions of whoever is about to act. Only ever called on the GM
+ * client from nextTurn(), so there is a single writer and no double-decrement. */
+async function tickConditions(id) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  const before = condsOf(it);
+  if (before.length === 0) return;
+  const expired = [];
+  const after = before.map(c => ({ ...c })).filter(c => {
+    if (c.rounds == null) return true;            // lasts until removed
+    c.rounds -= 1;
+    if (c.rounds <= 0) { expired.push(c.name); return false; }
+    return true;
+  });
+  await updateEntry(id, { conds: after });
+  if (expired.length) {
+    try {
+      await OBR.notification.show(`${displayName(it)}: ${expired.join(", ")} ended`, "DEFAULT");
+    } catch {}
+  }
+}
+
+/* ============================================================
+ *  Context menu (GM)
+ * ============================================================ */
+function setupContextMenu() {
+  OBR.contextMenu.create({
+    id: `${NS}/menu`,
+    icons: [
+      {
+        icon: "/add.svg",
+        label: "Add to initiative",
+        filter: {
+          roles: ["GM"],
+          every: [
+            { key: "layer", value: "CHARACTER", coordinator: "||" },
+            { key: "layer", value: "MOUNT" },
+            { key: ["metadata", META], value: undefined },
+          ],
+        },
+      },
+      {
+        icon: "/remove.svg",
+        label: "Remove from initiative",
+        filter: {
+          roles: ["GM"],
+          every: [
+            { key: "layer", value: "CHARACTER", coordinator: "||" },
+            { key: "layer", value: "MOUNT" },
+          ],
+        },
+      },
+    ],
+    async onClick(context) {
+      const toAdd = context.items.filter(i => entryOf(i) === undefined);
+      if (toAdd.length > 0) {
+        /* Auto-assign owner: if the token was created (dropped) by a connected
+         * non-GM player, prefill them as owner. */
+        let players = [];
+        try { players = await OBR.party.getPlayers(); } catch {}
+        await OBR.scene.items.updateItems(toAdd, (its) => {
+          for (const it of its) {
+            const creator = players.find(p => p.id === it.createdUserId && p.role !== "GM");
+            it.metadata[META] = {
+              initiative: null, name: null, bloodied: false,
+              dead: false, conds: [], benched: false,
+              hp: null, hpMax: null,
+              owner: creator ? creator.id : null,
+              ownerName: creator ? creator.name : null,
+              added: Date.now(),
+            };
+          }
+        });
+      } else {
+        const ids = context.items.map(i => i.id);
+        await OBR.scene.items.updateItems(ids, (its) => {
+          for (const it of its) delete it.metadata[META];
+        });
+        if (ids.includes(state.activeId)) await setState({ activeId: null });
+      }
+    },
+  });
+}
+
+/* ============================================================
+ *  Next turn
+ * ============================================================ */
+async function nextTurn() {
+  const order = activeList();
+  if (order.length === 0) return;
+  const idx = order.findIndex(i => i.id === state.activeId);
+  let nextId;
+  if (idx === -1) {
+    nextId = order[0].id;
+    await setState({ activeId: nextId });
+  } else if (idx + 1 >= order.length) {
+    nextId = order[0].id;
+    await setState({ activeId: nextId, round: state.round + 1 });
+  } else {
+    nextId = order[idx + 1].id;
+    await setState({ activeId: nextId });
+  }
+  await tickConditions(nextId);
+}
+
+/* ============================================================
+ *  Turn-change toast (shows even when the panel is closed)
+ * ============================================================ */
+let lastTurnKey = null;
+const turnKey = () => `${state.round}:${state.activeId || ""}`;
+async function notifyTurn({ silent = false } = {}) {
+  const key = turnKey();
+  if (key === lastTurnKey) return;
+  const prev = lastTurnKey;
+  lastTurnKey = key;
+  if (silent || !state.activeId) return;
+  const it = items.find(i => i.id === state.activeId);
+  if (!it) return;
+  const prevRound = prev ? Number(prev.split(":")[0]) : state.round;
+  const roundPrefix = Number.isFinite(prevRound) && state.round !== prevRound
+    ? `Round ${state.round} \u2014 ` : "";
+  const hiddenFromMe = role !== "GM" && it.visible === false;
+  const msg = hiddenFromMe
+    ? `\u{1F32B}\uFE0F ${roundPrefix}Something stirs in the Mists\u2026`
+    : `\u2694\uFE0F ${roundPrefix}It's ${displayName(it)}'s turn!`;
+  try { await OBR.notification.show(msg, "DEFAULT"); } catch {}
+}
+
+/* ============================================================
+ *  Panel rendering (keyed rows → input focus preserved)
+ * ============================================================ */
+const listEl  = document.getElementById("list");
+const emptyEl = document.getElementById("empty");
+const rowMap  = new Map();   // id → {root, refs}
+let benchDivider = null;
+
+function makeRow(it) {
+  const gm = role === "GM";
+  const root = document.createElement("div");
+  root.className = "row";
+
+  const main = document.createElement("div");
+  main.className = "row-main";
+
+  const img = document.createElement("img");
+  img.className = "mini";
+  img.alt = "";
+  img.title = "Double-click: center view";
+  if (gm) img.style.gridRow = "span 3";        // name line, HP line, conditions
+  img.addEventListener("dblclick", () => focusToken(root.dataset.id));
+
+  const name = document.createElement("input");
+  name.type = "text"; name.className = "name-input";
+  name.disabled = true;
+  name.addEventListener("change", () => {
+    const v = name.value.trim();
+    sendEdit(root.dataset.id, { name: v === "" ? null : v });
+  });
+
+  const init = document.createElement("input");
+  init.type = "number"; init.className = "init-input";
+  init.placeholder = "—"; init.disabled = true;
+  init.title = "Initiative value";
+  init.addEventListener("change", () => {
+    const v = init.value === "" ? null : Number(init.value);
+    sendEdit(root.dataset.id, { initiative: Number.isFinite(v) ? v : null });
+  });
+
+  const mkChk = (glyph, title, key) => {
+    const lab = document.createElement("label");
+    lab.className = "chk"; lab.title = title;
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.disabled = true;
+    cb.addEventListener("change", () => sendEdit(root.dataset.id, { [key]: cb.checked }));
+    const sp = document.createElement("span");
+    sp.className = "glyph"; sp.textContent = glyph;
+    lab.append(cb, sp);
+    return { lab, cb };
+  };
+  const bloodied = mkChk("\u{1FA78}", "Bloodied (HP ≤ 50%)", "bloodied"); // 🩸
+  const dead     = mkChk("\u{1F480}", "Dead", "dead");                        // 💀
+
+  const bench = document.createElement("button");
+  bench.className = "row-btn gm-only"; bench.type = "button";
+  bench.addEventListener("click", async () => {
+    const it = items.find(i => i.id === root.dataset.id);
+    if (!it) return;
+    const nowBenched = !entryOf(it).benched;
+    await updateEntry(root.dataset.id, { benched: nowBenched });
+    if (nowBenched && state.activeId === root.dataset.id) await setState({ activeId: null });
+  });
+
+  const remove = document.createElement("button");
+  remove.className = "row-btn gm-only"; remove.type = "button";
+  remove.textContent = "\u2715"; remove.title = "Remove from the list";
+  remove.addEventListener("click", async () => {
+    const id = root.dataset.id;
+    await OBR.scene.items.updateItems([id], (its) => { for (const i of its) delete i.metadata[META]; });
+    if (state.activeId === id) await setState({ activeId: null });
+  });
+
+  main.append(name, init, bloodied.lab, dead.lab, bench, remove);
+
+  /* hit points — built for the GM only, so a player's panel never even has the inputs */
+  let hpLine = null, hpCur = null, hpMax = null;
+  if (gm) {
+    hpLine = document.createElement("div");
+    hpLine.className = "row-hp";
+
+    const heart = document.createElement("span");
+    heart.className = "heart"; heart.textContent = "\u2764\uFE0F";
+
+    hpCur = document.createElement("input");
+    hpCur.type = "number"; hpCur.className = "hp-cur";
+    hpCur.placeholder = "HP"; hpCur.title = "Current hit points";
+    hpCur.dataset.live = "1";
+    hpCur.addEventListener("change", () => {
+      const v = hpCur.value === "" ? null : Number(hpCur.value);
+      setHP(root.dataset.id, "hp", Number.isFinite(v) ? v : null);
+    });
+
+    const slash = document.createElement("span");
+    slash.className = "hp-slash"; slash.textContent = "/";
+
+    hpMax = document.createElement("input");
+    hpMax.type = "number"; hpMax.className = "hp-max";
+    hpMax.placeholder = "max"; hpMax.title = "Maximum hit points";
+    hpMax.dataset.live = "1";
+    hpMax.addEventListener("change", () => {
+      const v = hpMax.value === "" ? null : Number(hpMax.value);
+      setHP(root.dataset.id, "hpMax", Number.isFinite(v) && v > 0 ? v : null);
+    });
+
+    const dmg = document.createElement("span");
+    dmg.className = "dmg-group";
+    const hurt = document.createElement("button");
+    hurt.type = "button"; hurt.className = "dmg-btn hurt";
+    hurt.textContent = "\u2212"; hurt.title = "Take that much damage";
+    const delta = document.createElement("input");
+    delta.type = "number"; delta.min = "0"; delta.className = "dmg-in";
+    delta.placeholder = "dmg"; delta.title = "Damage or healing — Enter hurts, Shift+Enter heals";
+    delta.dataset.live = "1";
+    const heal = document.createElement("button");
+    heal.type = "button"; heal.className = "dmg-btn heal";
+    heal.textContent = "+"; heal.title = "Heal that much";
+    const fire = (sign) => {
+      const n = Number(delta.value);
+      if (delta.value === "" || !Number.isFinite(n) || n === 0) return;
+      delta.value = "";
+      applyDelta(root.dataset.id, sign, n);
+    };
+    hurt.addEventListener("click", () => fire(-1));
+    heal.addEventListener("click", () => fire(+1));
+    delta.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); fire(ev.shiftKey ? +1 : -1); }
+    });
+    dmg.append(hurt, delta, heal);
+
+    hpLine.append(heart, hpCur, slash, hpMax, dmg);
+  }
+
+  const condWrap = document.createElement("div");
+  condWrap.className = "row-conds";
+
+  const addCond = document.createElement("button");
+  addCond.className = "chip-add"; addCond.type = "button";
+  addCond.textContent = "+ condition";
+  addCond.addEventListener("click", () => openCondSheet(root.dataset.id));
+
+  let ownerSel = null;
+  if (gm) {
+    ownerSel = document.createElement("select");
+    ownerSel.className = "owner-select";
+    ownerSel.title = "Assign this token to a player (they can then edit this row)";
+    ownerSel.addEventListener("change", () => {
+      const opt = ownerSel.selectedOptions[0];
+      updateEntry(root.dataset.id, {
+        owner: ownerSel.value || null,
+        ownerName: ownerSel.value ? opt.textContent : null,
+      });
+    });
+  }
+
+  root.append(img, main);
+  if (hpLine) root.append(hpLine);
+  root.append(condWrap);
+  return { root, refs: { img, name, init, bloodiedCb: bloodied.cb, deadCb: dead.cb, bench, condWrap, addCond, ownerSel, hpCur, hpMax } };
+}
+
+/* one chip, with its draining fill */
+function chipNode(id, c, canEdit) {
+  const chip = document.createElement("span");
+  const perm = c.rounds == null;
+  chip.className = "chip" + (perm ? " perm" : "") + (!perm && c.rounds === 1 ? " last" : "");
+  chip.title = perm ? `${c.name} — until removed` : `${c.name} — ${c.rounds} round(s) left`;
+
+  const fill = document.createElement("span");
+  fill.className = "fill";
+  const frac = perm ? 1 : Math.max(0.08, Math.min(1, c.rounds / (c.total || c.rounds)));
+  fill.style.transform = `scaleX(${frac})`;
+
+  const em = document.createElement("span"); em.className = "cem"; em.textContent = c.emoji;
+  const nm = document.createElement("span"); nm.className = "cnm"; nm.textContent = c.name;
+  const rd = document.createElement("span"); rd.className = "cr"; rd.textContent = perm ? "\u221E" : c.rounds;
+  chip.append(fill, em, nm, rd);
+
+  const btn = (label, title, fn) => {
+    const b = document.createElement("button");
+    b.className = "cbtn"; b.type = "button"; b.textContent = label; b.title = title;
+    b.disabled = !canEdit;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  chip.append(
+    btn("\u2212", "One round less", () => bumpCond(id, c.id, -1)),
+    btn("+", "One round more", () => bumpCond(id, c.id, +1)),
+    btn("\u00D7", "Remove condition", () => dropCond(id, c.id)),
+  );
+  return chip;
+}
+
+function bumpCond(id, cid, delta) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  const list = condsOf(it).map(c => ({ ...c }));
+  const c = list.find(x => x.id === cid);
+  if (!c) return;
+  if (c.rounds == null) {
+    if (delta > 0) return;                 // permanent stays until removed
+    c.rounds = 1; c.total = 1;             // minus starts a countdown
+  } else {
+    c.rounds += delta;
+    if (c.rounds <= 0) return sendEdit(id, { conds: list.filter(x => x.id !== cid) });
+    c.total = Math.max(c.total || 1, c.rounds);
+  }
+  sendEdit(id, { conds: list });
+}
+
+function dropCond(id, cid) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  sendEdit(id, { conds: condsOf(it).filter(c => c.id !== cid) });
+}
+
+function updateRow(rowObj, it) {
+  const { root, refs } = rowObj;
+  const e = entryOf(it);
+  const canEdit = role === "GM" || (!!e.owner && e.owner === myId);
+  root.dataset.id = it.id;
+  root.classList.toggle("active", state.activeId === it.id && !e.benched);
+  root.classList.toggle("dead-row", !!e.dead);
+  root.classList.toggle("benched", !!e.benched);
+  root.classList.toggle("mine", role !== "GM" && !!e.owner && e.owner === myId);
+  const hiddenOnBoard = role === "GM" && it.visible === false;
+  root.classList.toggle("hidden-row", hiddenOnBoard);
+  root.title = hiddenOnBoard ? "Hidden on the board — players don't see this token or its row" : "";
+
+  if (refs.img.src !== it.image.url) refs.img.src = it.image.url;
+  const setVal = (input, v) => { if (document.activeElement !== input && input.value !== v) input.value = v; };
+  setVal(refs.name, displayName(it));
+  setVal(refs.init, e.initiative == null ? "" : String(e.initiative));
+  refs.bloodiedCb.checked = !!e.bloodied;
+  refs.deadCb.checked = !!e.dead;
+  refs.name.disabled = !canEdit;
+  refs.init.disabled = !canEdit;
+  refs.bloodiedCb.disabled = !canEdit;
+  refs.deadCb.disabled = !canEdit;
+  refs.bench.textContent = e.benched ? "\u21A5" : "\u21A7";
+  refs.bench.title = e.benched ? "Return to combat" : "Set aside (keeps all info)";
+
+  if (refs.hpCur) {
+    setVal(refs.hpCur, e.hp == null ? "" : String(e.hp));
+    setVal(refs.hpMax, e.hpMax == null ? "" : String(e.hpMax));
+    refs.hpCur.style.backgroundImage = hpTint(e);
+    refs.hpCur.style.backgroundSize = hpFill(e);
+  }
+
+  /* conditions — rebuilt only when they actually changed, so chips don't flicker */
+  const conds = condsOf(it);
+  const sig = JSON.stringify(conds) + "|" + canEdit + "|" + (e.owner || "");
+  if (refs.condWrap.dataset.sig !== sig) {
+    refs.condWrap.dataset.sig = sig;
+    refs.condWrap.innerHTML = "";
+    for (const c of conds) refs.condWrap.append(chipNode(it.id, c, canEdit));
+    if (canEdit) refs.condWrap.append(refs.addCond);
+    if (refs.ownerSel) refs.condWrap.append(refs.ownerSel);
+  }
+  refs.condWrap.style.display = (conds.length || canEdit || refs.ownerSel) ? "" : "none";
+
+  if (refs.ownerSel && document.activeElement !== refs.ownerSel) {
+    const opts = [["", "\u2014 owner"]];
+    for (const p of party) if (p.role !== "GM") opts.push([p.id, p.name]);
+    if (e.owner && !opts.some(o => o[0] === e.owner)) opts.push([e.owner, `${e.ownerName || "Unknown"} (offline)`]);
+    const sig = JSON.stringify(opts) + "|" + (e.owner || "");
+    if (refs.ownerSel.dataset.sig !== sig) {
+      refs.ownerSel.dataset.sig = sig;
+      refs.ownerSel.innerHTML = "";
+      for (const [v, l] of opts) {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = l;
+        refs.ownerSel.append(o);
+      }
+      refs.ownerSel.value = e.owner || "";
+    }
+  }
+}
+
+/* Renders wait while you edit a name or initiative (re-sorting would yank the
+ * row away). The HP and damage boxes are exempt so the bar, 🩸 and 💀 update
+ * the moment you press Enter. */
+function panelHasFocus() {
+  const a = document.activeElement;
+  return a && listEl.contains(a) && (a.tagName === "INPUT" || a.tagName === "SELECT") && !a.dataset.live;
+}
+
+function scheduleRender() {
+  if (panelHasFocus()) { pendingRender = true; return; }
+  render();
+}
+listEl.addEventListener("focusout", () => {
+  setTimeout(() => { if (pendingRender && !panelHasFocus()) { pendingRender = false; render(); } }, 0);
+});
+
+let lastScrolledActive = null;
+function render() {
+  document.getElementById("round-num").textContent = String(state.round);
+  document.getElementById("btn-sort").innerHTML = state.sortDesc ? "\u2193 Init" : "\u2191 Init";
+
+  const nameEl = document.getElementById("current-name");
+  const activeItem = items.find(i => i.id === state.activeId);
+  if (!activeItem || entryOf(activeItem)?.benched) nameEl.textContent = "\u2014";
+  else if (role !== "GM" && activeItem.visible === false) nameEl.textContent = "???";
+  else nameEl.textContent = displayName(activeItem);
+
+  const act = activeList().filter(visibleForMe);
+  const ben = benchedList().filter(visibleForMe);
+  const seq = [...act, ...ben];
+
+  emptyEl.style.display = seq.length === 0 ? "" : "none";
+
+  // drop orphaned rows
+  const liveIds = new Set(seq.map(i => i.id));
+  for (const [id, r] of rowMap) {
+    if (!liveIds.has(id)) { r.root.remove(); rowMap.delete(id); }
+  }
+
+  if (!benchDivider) {
+    benchDivider = document.createElement("div");
+    benchDivider.id = "bench-divider";
+    benchDivider.textContent = "Out of combat";
+  }
+  if (ben.length === 0) benchDivider.remove();
+
+  // create/update then order — a node is only moved if it is out of place,
+  // because moving the row you are typing in would steal your cursor
+  let anchor = emptyEl;
+  const place = (node) => { if (anchor.nextSibling !== node) anchor.after(node); anchor = node; };
+  for (const it of act) {
+    let r = rowMap.get(it.id);
+    if (!r) { r = makeRow(it); rowMap.set(it.id, r); }
+    updateRow(r, it);
+    place(r.root);
+  }
+  if (ben.length > 0) place(benchDivider);
+  for (const it of ben) {
+    let r = rowMap.get(it.id);
+    if (!r) { r = makeRow(it); rowMap.set(it.id, r); }
+    updateRow(r, it);
+    place(r.root);
+  }
+
+  if (state.activeId !== lastScrolledActive) {
+    lastScrolledActive = state.activeId;
+    const activeRow = rowMap.get(state.activeId);
+    if (activeRow) activeRow.root.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+/* rows are built differently for GM and players, so a role switch rebuilds them */
+function resetRows() {
+  for (const [, r] of rowMap) r.root.remove();
+  rowMap.clear();
+}
+
+/* ============================================================
+ *  Board overlays (local items, per client)
+ * ============================================================ */
+function cornerCurves(it, b) {
+  const len = Math.min(b.w, b.h) * 0.28;
+  const wMain = Math.max(4, Math.min(b.w, b.h) * 0.05);
+  const gap = dpi * 0.04;            // 4% of one grid cell, same for all sizes
+  const inset = -(gap + wMain / 2);  // negative = outside the token frame
+  const cs = [
+    // [corner x, corner y, dir x, dir y]
+    [b.x + inset,        b.y + inset,        +1, +1],
+    [b.x + b.w - inset,  b.y + inset,        -1, +1],
+    [b.x + b.w - inset,  b.y + b.h - inset,  -1, -1],
+    [b.x + inset,        b.y + b.h - inset,  +1, -1],
+  ];
+  const out = [];
+  for (const [cx, cy, dx, dy] of cs) {
+    const pts = [
+      { x: cx + dx * len, y: cy },
+      { x: cx,            y: cy },
+      { x: cx,            y: cy + dy * len },
+    ];
+    for (const [color, width, op] of [
+      ["#ff5a5d", wMain * 2.4, 0.30],   // halo
+      ["#e5383b", wMain,       1.00],   // main stroke
+    ]) {
+      const c = buildCurve()
+        .points(pts)
+        .position({ x: 0, y: 0 })
+        .strokeColor(color)
+        .strokeOpacity(op)
+        .strokeWidth(width)
+        .strokeDash([])
+        .fillOpacity(0)
+        .tension(0)
+        .attachedTo(it.id)
+        .layer("ATTACHMENT")
+        .disableHit(true)
+        .locked(true)
+        .name(`${NS}/corner`)
+        .build();
+      out.push(c);
+      bracketIds.push(c.id);
+    }
+  }
+  return out;
+}
+
+function statusIcon(it, b, url) {
+  const size = Math.min(b.w, b.h) / 2;   // half the token's width & height
+  return buildImage(
+    { url, width: ICON_PX, height: ICON_PX, mime: "image/png" },
+    { dpi: ICON_PX, offset: { x: ICON_PX / 2, y: ICON_PX / 2 } }
+  )
+    .position({ x: b.x + b.w - size / 2, y: b.y + size / 2 })
+    .scale({ x: size / dpi, y: size / dpi })
+    .attachedTo(it.id)
+    .layer("ATTACHMENT")
+    .disableHit(true)
+    .locked(true)
+    .name(`${NS}/status`)
+    .build();
+}
+
+/* Conditions sit in a row along the bottom edge, shrinking to fit if there are many. */
+function conditionIcons(it, b) {
+  const list = condsOf(it);
+  if (list.length === 0) return [];
+  let size = Math.min(b.w, b.h) / 4;
+  if (size * list.length > b.w * 0.98) size = (b.w * 0.98) / list.length;
+  const startX = b.x + (b.w - size * list.length) / 2;
+  const y = b.y + b.h - size / 2;
+  return list.map((c, i) =>
+    buildImage(
+      { url: condIconURL(c.emoji), width: COND_PX, height: COND_PX, mime: "image/png" },
+      { dpi: COND_PX, offset: { x: COND_PX / 2, y: COND_PX / 2 } }
+    )
+      .position({ x: startX + size * i + size / 2, y })
+      .scale({ x: size / dpi, y: size / dpi })
+      .attachedTo(it.id)
+      .layer("ATTACHMENT")
+      .disableHit(true)
+      .locked(true)
+      .name(`${NS}/cond`)
+      .build()
+  );
+}
+
+/* HP numbers are left out: a hit that doesn't cross a threshold shouldn't
+   tear down and rebuild every icon on the board. */
+function overlaySignature() {
+  return JSON.stringify([
+    role, dpi, state.activeId,
+    items.map(i => {
+      const { hp, hpMax, ...rest } = entryOf(i) || {};
+      return [i.id, rest, i.visible, i.scale, i.image?.width, i.image?.height, i.grid];
+    }),
+  ]);
+}
+
+/* "24 / 37" in a dark pill just below the token, coloured like the panel's bar */
+function hpLabel(it, b, e) {
+  const fs = Math.max(dpi * 0.16, Math.min(b.w, b.h) * 0.17);
+  const frac = e.hpMax ? e.hp / e.hpMax : 1;
+  const col = e.hp <= 0 ? "#a99d84"
+            : frac > 0.5 ? "#9fd38f"
+            : frac > 0.25 ? "#e8b94f"
+            : "#ff6b6e";
+  return buildLabel()
+    .plainText(e.hpMax != null ? `${e.hp} / ${e.hpMax}` : String(e.hp))
+    .position({ x: b.x + b.w / 2, y: b.y + b.h + dpi * 0.06 })
+    .pointerDirection("UP")
+    .pointerHeight(0)
+    .pointerWidth(0)
+    .fontSize(fs)
+    .fontWeight(700)
+    .fillColor(col)
+    .backgroundColor("#131010")
+    .backgroundOpacity(0.85)
+    .cornerRadius(fs * 0.4)
+    .padding(fs * 0.3)
+    .attachedTo(it.id)
+    .layer("ATTACHMENT")
+    .disableHit(true)
+    .locked(true)
+    .name(`${NS}/hp`)
+    .build();
+}
+
+let hpBusy = false, hpQueued = false;
+async function rebuildHpLabels(force = false) {
+  if (!sceneReady) return;
+  const on = role === "GM" && showHpOnBoard;
+  const sig = JSON.stringify([on, dpi, on ? items.map(i => {
+    const e = entryOf(i) || {};
+    return [i.id, e.hp, e.hpMax, i.scale, i.image?.width, i.image?.height, i.grid];
+  }) : 0]);
+  if (!force && sig === hpSig) return;
+  hpSig = sig;
+  if (hpBusy) { hpQueued = true; return; }
+  hpBusy = true;
+  try {
+    if (hpIds.length) { try { await OBR.scene.local.deleteItems(hpIds); } catch {} }
+    hpIds = [];
+    if (!on) return;
+    const adds = [];
+    for (const it of items) {
+      const e = entryOf(it);
+      if (!e || e.hp == null) continue;
+      adds.push(hpLabel(it, bounds(it), e));
+    }
+    hpIds = adds.map(a => a.id);
+    if (adds.length) await OBR.scene.local.addItems(adds);
+  } catch (err) {
+    console.warn(`${NS}: HP labels failed`, err);
+  } finally {
+    hpBusy = false;
+    if (hpQueued) { hpQueued = false; rebuildHpLabels(true); }
+  }
+}
+
+function syncHpButton() {
+  const b = document.getElementById("btn-hpboard");
+  b.classList.toggle("on", showHpOnBoard);
+  b.title = showHpOnBoard
+    ? "HP shown under the tokens (only you see it) — click to hide, e.g. when screen-sharing"
+    : "Show HP under the tokens on the board (only you see it)";
+}
+
+let rebuilding = false, rebuildQueued = false;
+async function rebuildOverlays(force = false) {
+  if (!sceneReady) return;
+  rebuildHpLabels(force);
+  const sig = overlaySignature();
+  if (!force && sig === overlaySig) return;
+  overlaySig = sig;
+  if (rebuilding) { rebuildQueued = true; return; }
+  rebuilding = true;
+  try {
+    if (localIds.length) { try { await OBR.scene.local.deleteItems(localIds); } catch {} }
+    localIds = []; bracketIds = [];
+    const adds = [];
+    for (const it of items) {
+      const e = entryOf(it);
+      if (!e) continue;
+      if (role !== "GM" && it.visible === false) continue; // nothing for a hidden token
+      const b = bounds(it);
+      if (e.dead)          adds.push(statusIcon(it, b, SKULL_URL));
+      else if (e.bloodied) adds.push(statusIcon(it, b, DROP_URL));
+      adds.push(...conditionIcons(it, b));
+      if (state.activeId === it.id && !e.benched) adds.push(...cornerCurves(it, b));
+    }
+    localIds = adds.map(a => a.id);
+    if (adds.length) await OBR.scene.local.addItems(adds);
+  } finally {
+    rebuilding = false;
+    if (rebuildQueued) { rebuildQueued = false; rebuildOverlays(true); }
+  }
+}
+
+/* corner pulse (local: zero network traffic) */
+setInterval(async () => {
+  if (!sceneReady || bracketIds.length === 0) return;
+  const t = Date.now() / 380;
+  const pulse = 0.45 + 0.55 * Math.abs(Math.sin(t));
+  try {
+    await OBR.scene.local.updateItems(bracketIds, (its) => {
+      for (const i of its) {
+        const halo = (i.style.strokeColor || "").toLowerCase() === "#ff5a5d";
+        i.style.strokeOpacity = halo ? 0.3 * pulse : pulse;
+      }
+    });
+  } catch { /* items deleted meanwhile */ }
+}, 90);
+
+/* ============================================================
+ *  Condition picker — duration first, then pick; commits on the button
+ * ============================================================ */
+let condTargetId = null;
+let condPick = null;      // [emoji, name] currently selected
+
+const $ = (id) => document.getElementById(id);
+
+function openCondSheet(id) {
+  condTargetId = id;
+  condPick = null;
+  const it = items.find(i => i.id === id);
+  $("cond-title").textContent = it ? `Add a condition \u2014 ${displayName(it)}` : "Add a condition";
+  $("cond-rounds").value = "3";
+  $("cond-custom").value = "";
+  syncDurButtons();
+
+  const grid = $("cond-grid");
+  grid.innerHTML = "";
+  for (const [em, nm] of CONDITIONS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = `<span style="font-size:14px;margin-right:6px">${em}</span>${nm}`;
+    b.dataset.name = nm;
+    b.addEventListener("click", () => selectCond(em, nm));
+    b.addEventListener("dblclick", () => { selectCond(em, nm); commitCond(); });
+    grid.append(b);
+  }
+  refreshCondButton();
+  $("cond-sheet").hidden = false;
+}
+
+function closeCondSheet() { $("cond-sheet").hidden = true; condTargetId = null; }
+
+function selectCond(em, nm) {
+  condPick = [em, nm];
+  $("cond-custom").value = "";
+  document.querySelectorAll("#cond-grid button").forEach(b =>
+    b.classList.toggle("sel", b.dataset.name === nm));
+  refreshCondButton();
+}
+
+function currentRounds() {
+  const raw = $("cond-rounds").value;
+  return raw === "" ? null : Math.max(1, Math.min(99, Number(raw) || 1));
+}
+
+function refreshCondButton() {
+  const btn = $("cond-add");
+  const custom = $("cond-custom").value.trim();
+  const pick = custom ? ["\u{1F52E}", custom] : condPick;
+  const r = currentRounds();
+  btn.disabled = !pick;
+  btn.textContent = pick
+    ? `Add ${pick[1]} \u00B7 ${r == null ? "until removed" : r + (r === 1 ? " round" : " rounds")}`
+    : "Pick a condition";
+}
+
+function syncDurButtons() {
+  const cur = $("cond-rounds").value;
+  document.querySelectorAll(".dur").forEach(b => b.classList.toggle("on", b.dataset.r === cur));
+}
+
+function commitCond() {
+  const custom = $("cond-custom").value.trim();
+  const pick = custom ? ["\u{1F52E}", custom] : condPick;
+  if (!pick || !condTargetId) return;
+  const it = items.find(i => i.id === condTargetId);
+  if (!it) return closeCondSheet();
+  const rounds = currentRounds();
+  const list = [...condsOf(it), {
+    id: condId(), emoji: pick[0], name: pick[1], rounds, total: rounds,
+  }];
+  sendEdit(condTargetId, { conds: list });
+  closeCondSheet();
+}
+
+$("cond-cancel").addEventListener("click", closeCondSheet);
+$("cond-add").addEventListener("click", commitCond);
+$("cond-sheet").addEventListener("click", (e) => { if (e.target === $("cond-sheet")) closeCondSheet(); });
+$("cond-custom").addEventListener("input", () => {
+  if ($("cond-custom").value.trim()) {
+    condPick = null;
+    document.querySelectorAll("#cond-grid button").forEach(b => b.classList.remove("sel"));
+  }
+  refreshCondButton();
+});
+$("cond-custom").addEventListener("keydown", (e) => { if (e.key === "Enter") commitCond(); });
+$("cond-rounds").addEventListener("input", () => { syncDurButtons(); refreshCondButton(); });
+document.querySelectorAll(".dur").forEach(b =>
+  b.addEventListener("click", () => {
+    $("cond-rounds").value = b.dataset.r;
+    syncDurButtons(); refreshCondButton();
+  }));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("cond-sheet").hidden) closeCondSheet();
+});
+
+/* ============================================================
+ *  Toolbar actions
+ * ============================================================ */
+document.getElementById("btn-next").addEventListener("click", nextTurn);
+document.getElementById("btn-sort").addEventListener("click", () => setState({ sortDesc: !state.sortDesc }));
+syncHpButton();
+document.getElementById("btn-hpboard").addEventListener("click", () => {
+  showHpOnBoard = !showHpOnBoard;
+  try { localStorage.setItem(HP_PREF, showHpOnBoard ? "1" : "0"); } catch {}
+  syncHpButton();
+  rebuildHpLabels(true);
+});
+
+const resetMenu = document.getElementById("reset-menu");
+document.getElementById("btn-reset").addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  resetMenu.classList.toggle("open");
+});
+document.addEventListener("click", () => resetMenu.classList.remove("open"));
+
+document.getElementById("reset-init").addEventListener("click", async () => {
+  resetMenu.classList.remove("open");
+  const ids = items.map(i => i.id);
+  if (ids.length) {
+    await OBR.scene.items.updateItems(ids, (its) => {
+      for (const it of its) it.metadata[META] = { ...it.metadata[META], initiative: null };
+    });
+  }
+  await setState({ round: 1, activeId: null });
+});
+
+document.getElementById("reset-conds").addEventListener("click", async () => {
+  resetMenu.classList.remove("open");
+  const ids = items.filter(i => condsOf(i).length).map(i => i.id);
+  if (ids.length) {
+    await OBR.scene.items.updateItems(ids, (its) => {
+      for (const it of its) it.metadata[META] = { ...it.metadata[META], conds: [] };
+    });
+  }
+});
+
+/* everyone with a known maximum goes back to full, so 🩸 and 💀 clear too */
+document.getElementById("reset-hp").addEventListener("click", async () => {
+  resetMenu.classList.remove("open");
+  const ids = items.filter(i => entryOf(i).hpMax != null).map(i => i.id);
+  if (ids.length) {
+    await OBR.scene.items.updateItems(ids, (its) => {
+      for (const it of its) {
+        const e = { ...it.metadata[META] };
+        e.hp = e.hpMax;
+        it.metadata[META] = deriveFlags(e);
+      }
+    });
+  }
+});
+
+document.getElementById("reset-all").addEventListener("click", async () => {
+  resetMenu.classList.remove("open");
+  const ids = items.map(i => i.id);
+  if (ids.length) {
+    await OBR.scene.items.updateItems(ids, (its) => {
+      for (const it of its) delete it.metadata[META];
+    });
+  }
+  await setState({ round: 1, activeId: null });
+});
+
+async function focusToken(id) {
+  try {
+    await OBR.player.select([id]);
+    const b = await OBR.scene.items.getItemBounds([id]);
+    const pad = Math.max(b.width, b.height) * 2;
+    const min = { x: b.min.x - pad, y: b.min.y - pad };
+    const max = { x: b.max.x + pad, y: b.max.y + pad };
+    // animateToBounds expects a full BoundingBox (min, max, center, width, height)
+    await OBR.viewport.animateToBounds({
+      min, max,
+      center: { x: (min.x + max.x) / 2, y: (min.y + max.y) / 2 },
+      width:  max.x - min.x,
+      height: max.y - min.y,
+    });
+  } catch (err) {
+    console.warn(`${NS}: focusToken failed`, err);
+  }
+}
+
+/* ============================================================
+ *  Subscriptions & startup
+ * ============================================================ */
+function ingestItems(all) {
+  items = all.filter(i => i.type === "IMAGE" && i.metadata[META] !== undefined);
+  if (state.activeId && !items.some(i => i.id === state.activeId) && role === "GM") {
+    setState({ activeId: null });
+    return;
+  }
+  scheduleRender(); rebuildOverlays();
+}
+
+async function initScene() {
+  dpi = await OBR.scene.grid.getDpi();
+  const md = await OBR.scene.getMetadata();
+  state = { ...DEFAULT_STATE, ...(md[STATE] || {}) };
+  ingestItems(await OBR.scene.items.getItems());
+  lastTurnKey = null;
+  notifyTurn({ silent: true });   // seed: no toast for pre-existing state on join
+}
+
+function setHint() {
+  document.getElementById("hint").textContent = role === "GM"
+    ? "Double-click a portrait to center the view. In the damage box, Enter hurts and Shift+Enter heals."
+    : "The order of battle, as the Mists reveal it\u2026";
+}
+
+OBR.onReady(async () => {
+  role = await OBR.player.getRole();
+  myId = await OBR.player.getId();
+  document.body.classList.toggle("player", role !== "GM");
+  setHint();
+
+  if (role === "GM") setupContextMenu();
+
+  try { party = await OBR.party.getPlayers(); } catch {}
+  OBR.party.onChange((players) => { party = players; scheduleRender(); });
+
+  /* GM side of the owner-edit relay: verify the sender owns the token,
+   * whitelist the fields, then write. */
+  OBR.broadcast.onMessage(EDIT_CHANNEL, async (ev) => {
+    if (role !== "GM") return;
+    const { id, patch } = ev.data || {};
+    if (!id || !patch) return;
+    const it = items.find(i => i.id === id);
+    const e = it && entryOf(it);
+    if (!e || !e.owner) return;
+    const players = await OBR.party.getPlayers();
+    const sender = players.find(p => p.connectionId === ev.connectionId);
+    if (!sender || sender.id !== e.owner) return;
+    const clean = {};
+    for (const k of OWNER_EDITABLE) if (k in patch) clean[k] = patch[k];
+    if (Object.keys(clean).length) await updateEntry(id, clean);
+  });
+
+  OBR.scene.onMetadataChange((md) => {
+    if (md[STATE]) state = { ...DEFAULT_STATE, ...md[STATE] };
+    notifyTurn();
+    scheduleRender(); rebuildOverlays();
+  });
+
+  OBR.scene.items.onChange(ingestItems);
+
+  OBR.scene.grid.onChange(async () => {
+    dpi = await OBR.scene.grid.getDpi();
+    rebuildOverlays(true);
+  });
+
+  OBR.player.onChange(async (p) => {
+    if (p.role !== role) {
+      role = p.role;
+      document.body.classList.toggle("player", role !== "GM");
+      setHint();
+      resetRows();
+      scheduleRender(); rebuildOverlays(true);
+    }
+  });
+
+  sceneReady = await OBR.scene.isReady();
+  if (sceneReady) await initScene();
+  OBR.scene.onReadyChange(async (ready) => {
+    sceneReady = ready;
+    if (ready) { overlaySig = ""; hpSig = ""; localIds = []; bracketIds = []; hpIds = []; await initScene(); }
+    else { items = []; localIds = []; bracketIds = []; hpIds = []; overlaySig = ""; hpSig = ""; scheduleRender(); }
+  });
+});
+</script>
+</body>
+</html>
